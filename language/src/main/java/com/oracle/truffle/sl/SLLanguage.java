@@ -198,6 +198,8 @@ import com.oracle.truffle.sl.runtime.SLObject;
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, StandardTags.RootBodyTag.class, StandardTags.ExpressionTag.class, DebuggerTags.AlwaysHalt.class,
                 StandardTags.ReadVariableTag.class, StandardTags.WriteVariableTag.class})
 public final class SLLanguage extends TruffleLanguage<SLContext> {
+    private static SLLanguage instance;
+
     public static volatile int counter;
 
     public static final String ID = "sl";
@@ -212,8 +214,13 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     private final Shape rootShape;
 
     public SLLanguage() {
+        instance = this;
         counter++;
         this.rootShape = Shape.newBuilder().layout(SLObject.class).build();
+    }
+
+    public static SLLanguage current() {
+      return instance;
     }
 
     @Override

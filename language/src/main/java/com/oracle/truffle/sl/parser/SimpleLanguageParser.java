@@ -68,6 +68,7 @@ import java.util.ArrayList;
 @SuppressWarnings("all")
 public class SimpleLanguageParser extends Parser {
 	static { RuntimeMetaData.checkVersion("4.9.2", RuntimeMetaData.VERSION); }
+    protected static List<Integer> localTokenPosition;
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -156,12 +157,12 @@ public class SimpleLanguageParser extends Parser {
 	public ATN getATN() { return _ATN; }
 
 
-	private SLNodeFactory factory;
+	public SLNodeFactory factory;
 	private Source source;
 
-	private static final class BailoutErrorListener extends BaseErrorListener {
+	public static final class BailoutErrorListener extends BaseErrorListener {
 	    private final Source source;
-	    BailoutErrorListener(Source source) {
+	    public BailoutErrorListener(Source source) {
 	        this.source = source;
 	    }
 	    @Override
@@ -193,11 +194,13 @@ public class SimpleLanguageParser extends Parser {
 	    parser.factory = new SLNodeFactory(language, source);
 	    parser.source = source;
 	    parser.simplelanguage();
+	    localTokenPosition = parser.getlocalTokenPositions();
 	    return parser.factory.getAllFunctions();
 	}
 
 	public SimpleLanguageParser(TokenStream input) {
 		super(input);
+		this.localTokenPosition = new ArrayList<>();
 		_interp = new ParserATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
 
@@ -220,6 +223,7 @@ public class SimpleLanguageParser extends Parser {
 		enterRule(_localctx, 0, RULE_simplelanguage);
 		int _la;
 		try {
+		    storeCommentPostion(_localctx.start);
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(28);
@@ -279,8 +283,10 @@ public class SimpleLanguageParser extends Parser {
 			{
 			setState(37);
 			match(T__0);
+			storePosition(_localctx.start, SemanticTokenType.KEYWORD);
 			setState(38);
 			_localctx.IDENTIFIER = match(IDENTIFIER);
+			storePosition(_localctx.IDENTIFIER, SemanticTokenType.FUNCTION);
 			setState(39);
 			_localctx.s = match(T__1);
 			 factory.startFunction(_localctx.IDENTIFIER, _localctx.s); 
@@ -292,6 +298,7 @@ public class SimpleLanguageParser extends Parser {
 				setState(41);
 				_localctx.IDENTIFIER = match(IDENTIFIER);
 				 factory.addFormalParameter(_localctx.IDENTIFIER); 
+				storePosition(_localctx.IDENTIFIER, SemanticTokenType.PARAMETER);
 				setState(48);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
@@ -303,6 +310,7 @@ public class SimpleLanguageParser extends Parser {
 					setState(44);
 					_localctx.IDENTIFIER = match(IDENTIFIER);
 					 factory.addFormalParameter(_localctx.IDENTIFIER); 
+					storePosition(_localctx.IDENTIFIER, SemanticTokenType.PARAMETER);
 					}
 					}
 					setState(50);
@@ -378,7 +386,9 @@ public class SimpleLanguageParser extends Parser {
 			}
 			setState(67);
 			_localctx.e = match(T__5);
-			 _localctx.result =  factory.finishBlock(body, _localctx.s.getStartIndex(), _localctx.e.getStopIndex() - _localctx.s.getStartIndex() + 1); 
+			//else
+			//storeKeywordPosition(_localctx.start);
+			 _localctx.result =  factory.finishBlock(body, _localctx.s.getStartIndex(), _localctx.e.getStopIndex() - _localctx.s.getStartIndex() + 1);
 			}
 		}
 		catch (RecognitionException re) {
@@ -532,6 +542,7 @@ public class SimpleLanguageParser extends Parser {
 			{
 			setState(94);
 			_localctx.w = match(T__10);
+			storePosition(_localctx.start, SemanticTokenType.KEYWORD);
 			setState(95);
 			match(T__1);
 			setState(96);
@@ -587,6 +598,7 @@ public class SimpleLanguageParser extends Parser {
 			{
 			setState(101);
 			_localctx.i = match(T__11);
+			storePosition(_localctx.start, SemanticTokenType.KEYWORD);
 			setState(102);
 			match(T__1);
 			setState(103);
@@ -606,6 +618,18 @@ public class SimpleLanguageParser extends Parser {
 				setState(108);
 				_localctx.block = block(inLoop);
 				 elsePart = _localctx.block.result; 
+				 // really bad hack need to be improved
+				 if(_localctx.getChild(_localctx.getChildCount() -2).getText().equals("else"))
+				 {
+				     try {
+				        TerminalNodeImpl elseToken = (TerminalNodeImpl)_localctx.getChild(_localctx.getChildCount() -2);
+				        storePosition(elseToken.symbol, SemanticTokenType.KEYWORD);
+
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+
+				 }
 				}
 			}
 
@@ -645,7 +669,8 @@ public class SimpleLanguageParser extends Parser {
 			{
 			setState(115);
 			_localctx.r = match(T__13);
-			 SLExpressionNode value = null; 
+			storePosition(_localctx.start, SemanticTokenType.KEYWORD);
+			 SLExpressionNode value = null;
 			setState(120);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -1023,7 +1048,8 @@ public class SimpleLanguageParser extends Parser {
 				{
 				setState(177);
 				_localctx.IDENTIFIER = match(IDENTIFIER);
-				 SLExpressionNode assignmentName = factory.createStringLiteral(_localctx.IDENTIFIER, false); 
+				//storeIdentifierPosition(_localctx.start);
+				 SLExpressionNode assignmentName = factory.createStringLiteral(_localctx.IDENTIFIER, false);
 				setState(183);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,12,_ctx) ) {
@@ -1036,7 +1062,8 @@ public class SimpleLanguageParser extends Parser {
 					break;
 				case 2:
 					{
-					 _localctx.result =  factory.createRead(assignmentName); 
+					 _localctx.result =  factory.createRead(assignmentName);
+					 storePosition(_localctx.start,SemanticTokenType.VARIABLE);
 					}
 					break;
 				}
@@ -1046,12 +1073,14 @@ public class SimpleLanguageParser extends Parser {
 				{
 				setState(185);
 				_localctx.STRING_LITERAL = match(STRING_LITERAL);
-				 _localctx.result =  factory.createStringLiteral(_localctx.STRING_LITERAL, true); 
+				storePosition(_localctx.start, SemanticTokenType.STRING);
+				 _localctx.result =  factory.createStringLiteral(_localctx.STRING_LITERAL, true);
 				}
 				break;
 			case NUMERIC_LITERAL:
 				{
 				setState(187);
+				storePosition(_localctx.start, SemanticTokenType.NUMBER);
 				_localctx.NUMERIC_LITERAL = match(NUMERIC_LITERAL);
 				 _localctx.result =  factory.createNumericLiteral(_localctx.NUMERIC_LITERAL); 
 				}
@@ -1126,6 +1155,8 @@ public class SimpleLanguageParser extends Parser {
 			switch (_input.LA(1)) {
 			case T__1:
 				{
+				    storePosition(_localctx.getParent().start, SemanticTokenType.FUNCTION);
+
 				setState(197);
 				match(T__1);
 				 List<SLExpressionNode> parameters = new ArrayList<>();
@@ -1167,6 +1198,7 @@ public class SimpleLanguageParser extends Parser {
 				break;
 			case T__26:
 				{
+				    storePosition(_localctx.getParent().start, SemanticTokenType.VARIABLE);
 				setState(214);
 				match(T__26);
 				setState(215);
@@ -1319,4 +1351,60 @@ public class SimpleLanguageParser extends Parser {
 			_decisionToDFA[i] = new DFA(_ATN.getDecisionState(i), i);
 		}
 	}
+
+	public List<Integer>  getlocalTokenPositions() {
+        return localTokenPosition;
+    }
+
+	protected void addTokenPosition(final int lineNumber, int startingChar, final int length,
+	                final int tokenType, final int tokenMoifications) {
+
+	              localTokenPosition.add(lineNumber - 1);
+	              localTokenPosition.add(startingChar );
+	              localTokenPosition.add(length + 1);
+	              localTokenPosition.add(tokenType);
+	              localTokenPosition.add(tokenMoifications);
+
+	            }
+	protected void storePosition(final Token Identifier,SemanticTokenType token )  {
+        addTokenPosition(Identifier.getLine(), Identifier.getCharPositionInLine() ,
+                        (Identifier.getStopIndex() - Identifier.getStartIndex()), token.value, 0);
+    }
+
+    protected void storeCommentPostion(final Token Identifier) {
+        for (int i = 1; i < Identifier.getLine(); i++) {
+            addTokenPosition(i, 1 ,
+                            100, SemanticTokenType.COMMENT.value, 0);
+
+        }
+
+    }
+
+    public Source getSource() {
+        return source;
+    }
+
+    public void setSource(Source source) {
+        this.source = source;
+    }
+    public enum SemanticTokenType {
+        CLASS(0),
+        KEYWORD(1),
+        METHOD(2),
+        STRING(3),
+        VARIABLE(4),
+        COMMENT(5),
+        TYPE(6),
+        PROPERTY(7),
+        OPERATIOR(8),
+        PARAMETER(9),
+        FUNCTION(10),
+        NUMBER(11);
+
+        public final int value;
+
+        private SemanticTokenType(final int value) {
+          this.value = value;
+        }
+      }
 }
